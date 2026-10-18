@@ -1,0 +1,35 @@
+name: DetectorAero
+options:
+  bundleIdPrefix: ru.detector
+  deploymentTarget:
+    iOS: "15.0"
+  xcodeVersion: "15.0"
+settings:
+  base:
+    PRODUCT_NAME: "DetectorAero"
+    PRODUCT_BUNDLE_IDENTIFIER: ru.detector.aero
+    DEVELOPMENT_TEAM: ""
+    CODE_SIGNING_ALLOWED: NO
+    CODE_SIGNING_REQUIRED: NO
+    CODE_SIGN_IDENTITY: ""
+    TARGETED_DEVICE_FAMILY: "1,2"
+    INFOPLIST_FILE: Resources/Info.plist
+    ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+    CURRENT_PROJECT_VERSION: 1
+    MARKETING_VERSION: "1.0.0"
+    SWIFT_VERSION: "5.0"
+targets:
+  DetectorAero:
+    type: application
+    platform: iOS
+    deploymentTarget: "15.0"
+    sources:
+      - Sources
+      - Resources
+    settings:
+      base:
+        PRODUCT_NAME: "DetectorAero"
+        PRODUCT_BUNDLE_IDENTIFIER: ru.detector.aero
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+        INFOPLIST_FILE: Resources/Info.plist
+        SWIFT_VERSION: "5.0"

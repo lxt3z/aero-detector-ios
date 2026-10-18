@@ -1,0 +1,57 @@
+name: Build iOS IPA
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+      - master
+
+jobs:
+  build:
+    name: Build & Package .IPA
+    runs-on: macos-14
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Install XcodeGen
+        run: brew install xcodegen
+
+      - name: Generate Xcode Project
+        run: xcodegen generate
+
+      - name: Build iOS App (.app)
+        run: |
+          xcodebuild clean build \
+            -project DetectorAero.xcodeproj \
+            -scheme DetectorAero \
+            -configuration Release \
+            -sdk iphoneos \
+            -destination "generic/platform=iOS" \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGN_IDENTITY="" \
+            BUILD_DIR="$(pwd)/build"
+
+      - name: Create IPA Package
+        run: |
+          mkdir -p Payload
+          APP_DIR=$(find build -name "*.app" -type d | head -n 1)
+          if [ -z "$APP_DIR" ]; then
+            echo "Error: .app folder not found!"
+            exit 1
+          fi
+          echo "Found compiled app at: $APP_DIR"
+          cp -r "$APP_DIR" Payload/
+          zip -qr DetectorAero.ipa Payload
+          echo "DetectorAero.ipa successfully packaged!"
+          ls -lh DetectorAero.ipa
+
+      - name: Upload IPA Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: DetectorAero-IPA
+          path: DetectorAero.ipa
+          retention-days: 30

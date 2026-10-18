@@ -1,0 +1,12 @@
+# Build & Temp files
+build/
+Payload/
+*.ipa
+*.zip
+*.xcodeproj
+.DS_Store
+*.swp
+*~
+/icon.png
+/icon-192.png
+/icon-1024.png
