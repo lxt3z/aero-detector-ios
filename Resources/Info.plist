@@ -24,6 +24,12 @@
     <true/>
     <key>NSLocationWhenInUseUsageDescription</key>
     <string>Геолокация необходима для отображения вашего местоположения на карте БПЛА и воздушной обстановки.</string>
+    <key>UIBackgroundModes</key>
+    <array>
+        <string>audio</string>
+        <string>fetch</string>
+        <string>processing</string>
+    </array>
     <key>NSAppTransportSecurity</key>
     <dict>
         <key>NSAllowsArbitraryLoads</key>

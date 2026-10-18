@@ -1,8 +1,9 @@
 import UIKit
 import WebKit
 import CoreLocation
+import UserNotifications
 
-class ViewController: UIViewController, WKNavigationDelegate, WKUIDelegate, CLLocationManagerDelegate {
+class ViewController: UIViewController, WKNavigationDelegate, WKUIDelegate, CLLocationManagerDelegate, WKScriptMessageHandler {
 
     private var webView: WKWebView!
     private let locationManager = CLLocationManager()
@@ -102,6 +103,62 @@ class ViewController: UIViewController, WKNavigationDelegate, WKUIDelegate, CLLo
         }
         configuration.defaultWebpagePreferences.allowsContentJavaScript = true
 
+        // User Content Controller for receiving alerts from Web and injecting notification bridge
+        let contentController = WKUserContentController()
+        contentController.add(self, name: "aeroAlert")
+
+        let jsBridge = """
+        (function() {
+            // Hook standard Notification API
+            window.Notification = function(title, options) {
+                try {
+                    window.webkit.messageHandlers.aeroAlert.postMessage({
+                        title: title || '⚠️ Детектор АЭРО',
+                        body: options?.body || 'Внимание: изменение воздушной обстановки!'
+                    });
+                } catch(e) {}
+            };
+            window.Notification.permission = 'granted';
+            window.Notification.requestPermission = function(cb) {
+                if (cb) cb('granted');
+                return Promise.resolve('granted');
+            };
+
+            // DOM Observer for danger alerts, air alarms, UAV alerts
+            const seenAlerts = new Set();
+            const alertObserver = new MutationObserver(function() {
+                const selectors = [
+                    '.public-event-toast',
+                    '.public-notification',
+                    '[role="alert"]',
+                    '.public-mobile-status',
+                    '.toast',
+                    '.alert'
+                ];
+                document.querySelectorAll(selectors.join(',')).forEach(function(el) {
+                    const text = (el.innerText || el.textContent || '').trim();
+                    if (text && text.length > 5 && !seenAlerts.has(text)) {
+                        const lower = text.toLowerCase();
+                        if (lower.includes('бпла') || lower.includes('ракет') || lower.includes('опасност') || 
+                            lower.includes('тревог') || lower.includes('внимание') || lower.includes('пво') || lower.includes('отбой')) {
+                            seenAlerts.add(text);
+                            try {
+                                window.webkit.messageHandlers.aeroAlert.postMessage({
+                                    title: '🚨 Детектор АЭРО: Тревога!',
+                                    body: text
+                                });
+                            } catch(e) {}
+                        }
+                    }
+                });
+            });
+            alertObserver.observe(document.documentElement, { childList: true, subtree: true });
+        })();
+        """
+        let userScript = WKUserScript(source: jsBridge, injectionTime: .atDocumentEnd, forMainFrameOnly: false)
+        contentController.addUserScript(userScript)
+        configuration.userContentController = contentController
+
         webView = WKWebView(frame: .zero, configuration: configuration)
         webView.translatesAutoresizingMaskIntoConstraints = false
         webView.navigationDelegate = self
@@ -166,6 +223,30 @@ class ViewController: UIViewController, WKNavigationDelegate, WKUIDelegate, CLLo
 
     @objc private func didTapRetry() {
         loadRadar()
+    }
+
+    // MARK: - WKScriptMessageHandler (Receiving alerts from JavaScript)
+    func userContentController(_ userContentController: WKUserContentController, didReceive message: WKScriptMessage) {
+        guard message.name == "aeroAlert",
+              let dict = message.body as? [String: Any] else { return }
+
+        let title = (dict["title"] as? String) ?? "🚨 Детектор АЭРО: Тревога!"
+        let body = (dict["body"] as? String) ?? "Внимание: воздушная опасность!"
+
+        // Schedule immediate local notification
+        let content = UNMutableNotificationContent()
+        content.title = title
+        content.body = body
+        content.sound = UNNotificationSound.default
+        content.badge = 1
+
+        let trigger = UNTimeIntervalNotificationTrigger(timeInterval: 0.1, repeats: false)
+        let request = UNNotificationRequest(identifier: UUID().uuidString, content: content, trigger: trigger)
+        UNUserNotificationCenter.current().add(request, withCompletionHandler: nil)
+
+        // Haptic notification
+        let generator = UINotificationFeedbackGenerator()
+        generator.notificationOccurred(.warning)
     }
 
     // MARK: - KVO Progress
@@ -263,5 +344,6 @@ class ViewController: UIViewController, WKNavigationDelegate, WKUIDelegate, CLLo
 
     deinit {
         webView?.removeObserver(self, forKeyPath: #keyPath(WKWebView.estimatedProgress))
+        webView?.configuration.userContentController.removeScriptMessageHandler(forName: "aeroAlert")
     }
 }
