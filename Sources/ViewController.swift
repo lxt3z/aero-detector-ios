@@ -42,12 +42,21 @@ class ViewController: UIViewController, WKNavigationDelegate, WKUIDelegate, CLLo
         messageLabel.numberOfLines = 0
 
         let retryButton = UIButton(type: .system)
-        retryButton.setTitle("Повторить", for: .normal)
-        retryButton.setTitleColor(.white, for: .normal)
-        retryButton.titleLabel?.font = .boldSystemFont(ofSize: 16)
         retryButton.backgroundColor = UIColor(red: 0.18, green: 0.55, blue: 0.42, alpha: 1.0)
         retryButton.layer.cornerRadius = 10
-        retryButton.contentEdgeInsets = UIEdgeInsets(top: 12, left: 32, bottom: 12, right: 32)
+        if #available(iOS 15.0, *) {
+            var config = UIButton.Configuration.filled()
+            config.title = "Повторить"
+            config.baseBackgroundColor = UIColor(red: 0.18, green: 0.55, blue: 0.42, alpha: 1.0)
+            config.baseForegroundColor = .white
+            config.contentInsets = NSDirectionalEdgeInsets(top: 12, leading: 32, bottom: 12, trailing: 32)
+            retryButton.configuration = config
+        } else {
+            retryButton.setTitle("Повторить", for: .normal)
+            retryButton.setTitleColor(.white, for: .normal)
+            retryButton.titleLabel?.font = .boldSystemFont(ofSize: 16)
+            retryButton.contentEdgeInsets = UIEdgeInsets(top: 12, left: 32, bottom: 12, right: 32)
+        }
         retryButton.addTarget(self, action: #selector(didTapRetry), for: .touchUpInside)
 
         stack.addArrangedSubview(iconLabel)
@@ -88,7 +97,9 @@ class ViewController: UIViewController, WKNavigationDelegate, WKUIDelegate, CLLo
     private func setupWebView() {
         let configuration = WKWebViewConfiguration()
         configuration.allowsInlineMediaPlayback = true
-        configuration.preferences.isElementFullscreenEnabled = true
+        if #available(iOS 15.4, *) {
+            configuration.preferences.isElementFullscreenEnabled = true
+        }
         configuration.defaultWebpagePreferences.allowsContentJavaScript = true
 
         webView = WKWebView(frame: .zero, configuration: configuration)
